@@ -1,0 +1,1500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ZK-Octopus — Interactive Demo</title>
+<style>
+  /* ── Reset & base ─────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --purple:       #637FEA;
+    --purple-dark:  #4a67d4;
+    --purple-light: #e8edfd;
+    --purple-xlight:#f4f6fe;
+    --gray:         #4A4A4A;
+    --gray-light:   #F5F5F5;
+    --text:         #222222;
+    --success:      #2ecc71;
+    --warn:         #e67e22;
+    --danger:       #e74c3c;
+    --border:       #dde3f8;
+    --radius:       10px;
+    --shadow:       0 4px 20px rgba(99,127,234,0.10);
+  }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #f8f9ff;
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+  a { color: var(--purple); text-decoration: none; }
+
+  /* ── Navigation ───────────────────────────────────── */
+  nav {
+    background: #fff;
+    border-bottom: 2px solid var(--purple);
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    height: 60px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 12px rgba(99,127,234,0.08);
+  }
+  .nav-brand {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--purple);
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+  .nav-brand span { color: var(--gray); font-weight: 400; }
+  .nav-tabs {
+    display: flex;
+    gap: 4px;
+    flex: 1;
+    overflow-x: auto;
+  }
+  .nav-tab {
+    padding: 6px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: var(--gray);
+    border: none;
+    background: transparent;
+    transition: all .18s;
+    white-space: nowrap;
+  }
+  .nav-tab:hover { background: var(--purple-light); color: var(--purple); }
+  .nav-tab.active { background: var(--purple); color: #fff; }
+
+  /* ── Section container ────────────────────────────── */
+  .section { display: none; padding: 40px 32px; max-width: 1100px; margin: 0 auto; }
+  .section.active { display: block; }
+
+  /* ── Section header ───────────────────────────────── */
+  .section-title {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--purple);
+    border-bottom: 3px solid var(--purple);
+    padding-bottom: 10px;
+    margin-bottom: 8px;
+  }
+  .section-sub {
+    color: var(--gray);
+    font-size: 0.94rem;
+    margin-bottom: 32px;
+  }
+
+  /* ── Cards ────────────────────────────────────────── */
+  .card {
+    background: #fff;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    padding: 24px;
+    box-shadow: var(--shadow);
+  }
+
+  /* ════════════════════════════════════════════════════
+     SECTION 1 — Architecture
+     ════════════════════════════════════════════════════ */
+  .arch-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .arch-layer {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .arch-layer-title {
+    text-align: center;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--purple);
+    background: var(--purple-light);
+    border-radius: 6px;
+    padding: 5px 8px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .arch-node {
+    background: #fff;
+    border: 2px solid var(--purple);
+    border-radius: 8px;
+    padding: 12px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all .2s;
+    min-height: 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+  .arch-node:hover, .arch-node.selected {
+    background: var(--purple);
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(99,127,234,0.28);
+  }
+  .arch-node .node-name {
+    font-weight: 700;
+    font-size: 0.84rem;
+  }
+  .arch-node .node-sub {
+    font-size: 0.72rem;
+    opacity: 0.75;
+    line-height: 1.3;
+  }
+  .arch-node.gray-node { border-color: var(--gray); }
+  .arch-node.gray-node:hover, .arch-node.gray-node.selected {
+    background: var(--gray);
+  }
+  .arch-arrows {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    color: var(--purple);
+    padding-top: 40px;
+  }
+
+  /* Flow arrows between layers */
+  .arch-flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 28px;
+    overflow-x: auto;
+  }
+  .flow-step {
+    flex: 1;
+    text-align: center;
+    position: relative;
+  }
+  .flow-arrow {
+    color: var(--purple);
+    font-size: 1.6rem;
+    flex-shrink: 0;
+    padding: 0 6px;
+    align-self: center;
+    padding-top: 60px;
+  }
+
+  /* Detail panel */
+  .arch-detail {
+    background: var(--purple-xlight);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin-top: 16px;
+    min-height: 100px;
+    transition: all .25s;
+  }
+  .arch-detail h3 { color: var(--purple); font-size: 1.05rem; margin-bottom: 8px; }
+  .arch-detail p { color: var(--gray); font-size: 0.9rem; line-height: 1.7; }
+  .arch-detail .badge {
+    display: inline-block;
+    background: var(--purple);
+    color: #fff;
+    font-size: 0.75rem;
+    padding: 2px 10px;
+    border-radius: 20px;
+    margin: 2px 3px;
+    font-weight: 600;
+  }
+  .arch-detail .badge.gray { background: var(--gray); }
+
+  /* ════════════════════════════════════════════════════
+     SECTION 2 — ZK Proof Simulation
+     ════════════════════════════════════════════════════ */
+  .sim-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 24px;
+  }
+  .sim-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .sim-step {
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 2px solid var(--border);
+    cursor: pointer;
+    font-size: 0.87rem;
+    font-weight: 500;
+    color: var(--gray);
+    background: #fff;
+    transition: all .18s;
+    position: relative;
+  }
+  .sim-step::before {
+    content: attr(data-num);
+    display: inline-flex;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--border);
+    color: var(--gray);
+    font-size: 0.75rem;
+    font-weight: 700;
+    align-items: center;
+    justify-content: center;
+    margin-right: 8px;
+    flex-shrink: 0;
+    vertical-align: middle;
+  }
+  .sim-step.active {
+    border-color: var(--purple);
+    color: var(--purple);
+    background: var(--purple-xlight);
+  }
+  .sim-step.active::before {
+    background: var(--purple);
+    color: #fff;
+  }
+  .sim-step.done {
+    border-color: var(--success);
+    color: var(--success);
+  }
+  .sim-step.done::before {
+    content: '✓';
+    background: var(--success);
+    color: #fff;
+  }
+
+  .sim-panel {
+    min-height: 420px;
+  }
+  .sim-scene {
+    display: none;
+  }
+  .sim-scene.active {
+    display: block;
+  }
+  .sim-scene h3 {
+    font-size: 1.1rem;
+    color: var(--purple);
+    margin-bottom: 12px;
+  }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.83rem;
+    margin-bottom: 16px;
+  }
+  .data-table th {
+    background: var(--purple-light);
+    color: var(--purple);
+    font-weight: 700;
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 2px solid var(--border);
+  }
+  .data-table td {
+    padding: 7px 12px;
+    border-bottom: 1px solid var(--gray-light);
+    font-family: 'Consolas', monospace;
+  }
+  .data-table tr:nth-child(even) td { background: #fafbff; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
+  .tag-transit  { background: #dbeafe; color: #1d4ed8; }
+  .tag-retail   { background: #d1fae5; color: #065f46; }
+  .tag-building { background: #fef3c7; color: #92400e; }
+  .tag-gov      { background: #ede9fe; color: #5b21b6; }
+
+  .code-block {
+    background: #1e1e2e;
+    color: #cdd6f4;
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 0.82rem;
+    line-height: 1.6;
+    overflow-x: auto;
+    margin: 10px 0;
+  }
+  .code-block .kw  { color: #cba6f7; }
+  .code-block .str { color: #a6e3a1; }
+  .code-block .num { color: #fab387; }
+  .code-block .cmt { color: #6c7086; font-style: italic; }
+  .code-block .key { color: #89b4fa; }
+
+  .progress-bar {
+    background: var(--gray-light);
+    border-radius: 20px;
+    height: 8px;
+    margin: 12px 0;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--purple), var(--purple-dark));
+    border-radius: 20px;
+    transition: width 1.2s ease;
+    width: 0%;
+  }
+  .progress-label {
+    font-size: 0.82rem;
+    color: var(--gray);
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .proof-box {
+    background: var(--purple-xlight);
+    border: 2px dashed var(--purple);
+    border-radius: 8px;
+    padding: 16px;
+    margin: 10px 0;
+  }
+  .proof-box .proof-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--purple);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+  }
+  .proof-hex {
+    font-family: 'Consolas', monospace;
+    font-size: 0.75rem;
+    color: var(--gray);
+    word-break: break-all;
+    line-height: 1.5;
+  }
+
+  .sim-btn {
+    background: var(--purple);
+    color: #fff;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 7px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .18s;
+    margin-top: 12px;
+  }
+  .sim-btn:hover { background: var(--purple-dark); transform: translateY(-1px); }
+  .sim-btn:disabled { background: var(--border); color: var(--gray); cursor: not-allowed; transform: none; }
+
+  /* ════════════════════════════════════════════════════
+     SECTION 3 — Credential Generator
+     ════════════════════════════════════════════════════ */
+  .cred-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  .form-group { margin-bottom: 18px; }
+  .form-label {
+    display: block;
+    font-size: 0.86rem;
+    font-weight: 600;
+    color: var(--gray);
+    margin-bottom: 6px;
+  }
+  .form-select, .form-input {
+    width: 100%;
+    border: 1.5px solid var(--border);
+    border-radius: 7px;
+    padding: 9px 12px;
+    font-size: 0.88rem;
+    color: var(--text);
+    background: #fff;
+    outline: none;
+    transition: border-color .18s;
+    font-family: inherit;
+  }
+  .form-select:focus, .form-input:focus { border-color: var(--purple); }
+  .form-range {
+    width: 100%;
+    accent-color: var(--purple);
+  }
+  .range-val {
+    text-align: right;
+    font-size: 0.82rem;
+    color: var(--purple);
+    font-weight: 700;
+  }
+
+  .cred-output {
+    min-height: 380px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .cred-placeholder {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--border);
+    font-size: 0.92rem;
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .cred-placeholder .icon { font-size: 2.5rem; }
+
+  .cred-card {
+    border: 2px solid var(--purple);
+    border-radius: var(--radius);
+    overflow: hidden;
+    animation: fadeIn .4s ease;
+  }
+  @keyframes fadeIn { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform:translateY(0); } }
+  .cred-card-header {
+    background: var(--purple);
+    color: #fff;
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .cred-card-header .cred-type { font-weight: 700; font-size: 0.92rem; }
+  .cred-card-header .cred-verified {
+    font-size: 0.78rem;
+    background: rgba(255,255,255,0.25);
+    padding: 3px 10px;
+    border-radius: 12px;
+  }
+  .cred-card-body { padding: 14px 16px; background: var(--purple-xlight); }
+  .cred-field { margin-bottom: 10px; }
+  .cred-field-key {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--purple);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .cred-field-val {
+    font-family: 'Consolas', monospace;
+    font-size: 0.82rem;
+    color: var(--text);
+    word-break: break-all;
+  }
+  .cred-field-val.redacted {
+    color: var(--danger);
+    font-style: italic;
+  }
+  .cred-field-val.public {
+    color: var(--success);
+    font-weight: 700;
+  }
+  .verdict {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-top: 4px;
+  }
+  .verdict.pass { background: #d1fae5; color: #065f46; }
+  .verdict.fail { background: #fee2e2; color: #991b1b; }
+
+  /* ════════════════════════════════════════════════════
+     SECTION 4 — Privacy Comparison
+     ════════════════════════════════════════════════════ */
+  .privacy-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  .privacy-panel {
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 2px solid;
+  }
+  .privacy-panel.trad { border-color: var(--danger); }
+  .privacy-panel.zk   { border-color: var(--success); }
+  .privacy-panel-header {
+    padding: 12px 18px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: #fff;
+  }
+  .privacy-panel.trad .privacy-panel-header { background: var(--danger); }
+  .privacy-panel.zk   .privacy-panel-header { background: var(--success); }
+  .privacy-panel-body { padding: 16px 18px; background: #fff; }
+
+  .exposed-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--gray-light);
+    font-size: 0.84rem;
+  }
+  .exposed-row .icon { font-size: 1rem; }
+  .exposed-row .label { color: var(--gray); flex: 1; }
+  .exposed-row .val { font-family: monospace; font-size: 0.8rem; color: var(--danger); font-weight: 600; }
+  .exposed-row .val.hidden-val { color: var(--success); font-style: italic; }
+
+  .risk-meter {
+    margin-top: 14px;
+  }
+  .risk-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+  .risk-fill {
+    height: 10px;
+    border-radius: 20px;
+  }
+  .risk-fill.high   { background: linear-gradient(90deg, #f97316, #ef4444); width: 95%; }
+  .risk-fill.low    { background: linear-gradient(90deg, #22c55e, #16a34a); width: 3%;  }
+
+  .re-id-note {
+    margin-top: 12px;
+    font-size: 0.8rem;
+    line-height: 1.6;
+    padding: 10px 12px;
+    border-radius: 7px;
+  }
+  .re-id-note.danger { background: #fee2e2; color: #991b1b; border-left: 4px solid var(--danger); }
+  .re-id-note.safe   { background: #d1fae5; color: #065f46; border-left: 4px solid var(--success); }
+
+  .two-class-banner {
+    grid-column: 1 / -1;
+    background: var(--purple-xlight);
+    border: 1.5px solid var(--border);
+    border-left: 4px solid var(--purple);
+    border-radius: 8px;
+    padding: 14px 18px;
+    font-size: 0.88rem;
+    color: var(--gray);
+    line-height: 1.7;
+    margin-bottom: 4px;
+  }
+  .two-class-banner strong { color: var(--purple); }
+
+  /* ── Misc helpers ─────────────────────────────────── */
+  .row { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.81rem;
+    font-weight: 600;
+    background: var(--purple-light);
+    color: var(--purple);
+  }
+  .chip.green { background: #d1fae5; color: #065f46; }
+  .chip.orange { background: #fef3c7; color: #92400e; }
+
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin: 20px 0;
+  }
+  .info-card {
+    background: var(--purple-xlight);
+    border-radius: 8px;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+  }
+  .info-card .ic-num {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--purple);
+  }
+  .info-card .ic-label { font-size: 0.8rem; color: var(--gray); margin-top: 2px; }
+
+  .nav-sim-btns {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .nav-sim-btn {
+    padding: 8px 18px;
+    border-radius: 7px;
+    border: 2px solid var(--purple);
+    font-size: 0.87rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .18s;
+    background: #fff;
+    color: var(--purple);
+  }
+  .nav-sim-btn:hover { background: var(--purple); color: #fff; }
+  .nav-sim-btn.primary { background: var(--purple); color: #fff; }
+  .nav-sim-btn.primary:hover { background: var(--purple-dark); }
+  .nav-sim-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  @media (max-width: 800px) {
+    .arch-grid { grid-template-columns: repeat(3, 1fr); }
+    .sim-layout, .cred-layout, .privacy-layout { grid-template-columns: 1fr; }
+    .info-grid { grid-template-columns: 1fr 1fr; }
+    nav { padding: 0 16px; gap: 16px; }
+    .section { padding: 24px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Navigation ───────────────────────────────────────────────── -->
+<nav>
+  <div class="nav-brand">ZK-Octopus <span>| Privacy-Preserving Urban Credentials on Ethereum</span></div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showSection('arch')">Architecture</button>
+    <button class="nav-tab" onclick="showSection('sim')">ZK Proof Simulation</button>
+    <button class="nav-tab" onclick="showSection('cred')">Credential Generator</button>
+    <button class="nav-tab" onclick="showSection('priv')">Privacy Comparison</button>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════════════════════════════
+     SECTION 1 — Architecture
+     ══════════════════════════════════════════════════════════════ -->
+<section id="arch" class="section active">
+  <div class="section-title">System Architecture</div>
+  <div class="section-sub">Click any component to see its role in the ZK-Octopus pipeline.</div>
+
+  <div class="info-grid">
+    <div class="info-card">
+      <div class="ic-num">37M+</div>
+      <div class="ic-label">Octopus cards in circulation</div>
+    </div>
+    <div class="info-card">
+      <div class="ic-num">15M</div>
+      <div class="ic-label">Daily transactions processed</div>
+    </div>
+    <div class="info-card">
+      <div class="ic-num">&lt; 3s</div>
+      <div class="ic-label">Groth16 proof on mobile device</div>
+    </div>
+  </div>
+
+  <div class="arch-grid">
+    <!-- Layer 1: Data Source -->
+    <div class="arch-layer">
+      <div class="arch-layer-title">Data Source</div>
+      <div class="arch-node" onclick="showDetail('octopus-card')">
+        <div class="node-name">Octopus Card</div>
+        <div class="node-sub">37M cards · 190K touchpoints</div>
+      </div>
+      <div class="arch-node" onclick="showDetail('octopus-portal')">
+        <div class="node-name">Octopus Portal</div>
+        <div class="node-sub">API endpoint (TLS-secured)</div>
+      </div>
+      <div class="arch-node gray-node" onclick="showDetail('two-class')">
+        <div class="node-name">User Classes</div>
+        <div class="node-sub">Pseudonymous / Named</div>
+      </div>
+    </div>
+    <!-- Layer 2: Provenance -->
+    <div class="arch-layer">
+      <div class="arch-layer-title">Provenance</div>
+      <div class="arch-node" onclick="showDetail('tlsnotary')">
+        <div class="node-name">TLSNotary</div>
+        <div class="node-sub">MPC-TLS notarization</div>
+      </div>
+      <div class="arch-node" onclick="showDetail('pod')">
+        <div class="node-name">POD Credential</div>
+        <div class="node-sub">Poseidon Merkle key-value</div>
+      </div>
+    </div>
+    <!-- Layer 3: On-device Proving -->
+    <div class="arch-layer">
+      <div class="arch-layer-title">On-device Proving</div>
+      <div class="arch-node" onclick="showDetail('semaphore')">
+        <div class="node-name">Semaphore V4</div>
+        <div class="node-sub">EdDSA / BabyJubJub · nullifier</div>
+      </div>
+      <div class="arch-node" onclick="showDetail('gpc')">
+        <div class="node-name">GPC Config</div>
+        <div class="node-sub">Circom + Groth16 circuits</div>
+      </div>
+      <div class="arch-node" onclick="showDetail('mopro')">
+        <div class="node-name">Mopro SDK</div>
+        <div class="node-sub">iOS &amp; Android &lt; 3s</div>
+      </div>
+    </div>
+    <!-- Layer 4: On-chain -->
+    <div class="arch-layer">
+      <div class="arch-layer-title">On-chain (Arbitrum One)</div>
+      <div class="arch-node" onclick="showDetail('eas')">
+        <div class="node-name">EAS</div>
+        <div class="node-sub">Ethereum Attestation Service</div>
+      </div>
+      <div class="arch-node" onclick="showDetail('resolver')">
+        <div class="node-name">ZKOctopus Resolver</div>
+        <div class="node-sub">Groth16 verify · nullifier check</div>
+      </div>
+    </div>
+    <!-- Layer 5: Presentation -->
+    <div class="arch-layer">
+      <div class="arch-layer-title">Presentation</div>
+      <div class="arch-node" onclick="showDetail('zupass')">
+        <div class="node-name">Zupass PCD</div>
+        <div class="node-sub">Credential wallet · selective disclosure</div>
+      </div>
+      <div class="arch-node gray-node" onclick="showDetail('verifier')">
+        <div class="node-name">Verifier</div>
+        <div class="node-sub">Gov't dept · Transit op · Property mgr</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arch-detail" id="arch-detail">
+    <h3>Select a component above</h3>
+    <p>Click any node in the architecture diagram to see a detailed explanation of its role in the ZK-Octopus pipeline.</p>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════
+     SECTION 2 — ZK Proof Simulation
+     ══════════════════════════════════════════════════════════════ -->
+<section id="sim" class="section">
+  <div class="section-title">ZK Proof Simulation</div>
+  <div class="section-sub">Step through the full pipeline: from Octopus card data to an on-chain EAS attestation — without any private data leaving the device.</div>
+
+  <div class="sim-layout">
+    <!-- Step list -->
+    <div class="sim-steps">
+      <div class="sim-step" data-num="1" id="step-btn-1" onclick="goStep(1)">Octopus Transaction Data</div>
+      <div class="sim-step" data-num="2" id="step-btn-2" onclick="goStep(2)">TLSNotary Notarization</div>
+      <div class="sim-step" data-num="3" id="step-btn-3" onclick="goStep(3)">POD Credential Construction</div>
+      <div class="sim-step" data-num="4" id="step-btn-4" onclick="goStep(4)">Semaphore Identity Layer</div>
+      <div class="sim-step" data-num="5" id="step-btn-5" onclick="goStep(5)">GPC Circuit &amp; Mopro Proving</div>
+      <div class="sim-step" data-num="6" id="step-btn-6" onclick="goStep(6)">EAS On-chain Attestation</div>
+      <div class="sim-step" data-num="7" id="step-btn-7" onclick="goStep(7)">Verifier Credential Check</div>
+    </div>
+
+    <!-- Scenes -->
+    <div class="sim-panel card">
+      <!-- Step 1 -->
+      <div class="sim-scene active" id="scene-1">
+        <h3>Step 1 — Raw Octopus Transaction Data</h3>
+        <p style="font-size:0.86rem;color:var(--gray);margin-bottom:12px;">The cardholder's Octopus card has generated the following transactions (stored privately on their device after TLS download from the Octopus portal).</p>
+        <table class="data-table">
+          <thead><tr><th>Timestamp</th><th>Terminal</th><th>Amount (HKD)</th><th>Category</th><th>Zone</th></tr></thead>
+          <tbody>
+            <tr><td>2026-03-01 08:12</td><td>MTR Kowloon Tong</td><td>-9.50</td><td><span class="tag tag-transit">Transit</span></td><td>KLN</td></tr>
+            <tr><td>2026-03-01 18:44</td><td>MTR Kowloon Tong</td><td>-9.50</td><td><span class="tag tag-transit">Transit</span></td><td>KLN</td></tr>
+            <tr><td>2026-03-02 08:09</td><td>MTR Mong Kok</td><td>-8.00</td><td><span class="tag tag-transit">Transit</span></td><td>KLN</td></tr>
+            <tr><td>2026-03-03 07:55</td><td>MTR Kowloon Tong</td><td>-9.50</td><td><span class="tag tag-transit">Transit</span></td><td>KLN</td></tr>
+            <tr><td>2026-03-04 12:30</td><td>7-Eleven (MK)</td><td>-23.50</td><td><span class="tag tag-retail">Retail</span></td><td>KLN</td></tr>
+            <tr><td>2026-03-05 08:05</td><td>MTR Prince Edward</td><td>-7.50</td><td><span class="tag tag-transit">Transit</span></td><td>KLN</td></tr>
+            <tr><td>2026-03-10 15:00</td><td>Block A Lobby</td><td>-300.00</td><td><span class="tag tag-building">Building</span></td><td>KLN</td></tr>
+            <tr><td>2026-03-15 08:11</td><td>MTR Kowloon Tong</td><td>-9.50</td><td><span class="tag tag-transit">Transit</span></td><td>KLN</td></tr>
+          </tbody>
+        </table>
+        <div class="row">
+          <span class="chip">Transit trips in KLN: <strong style="margin-left:4px">6</strong></span>
+          <span class="chip">Mgmt fees paid: <strong style="margin-left:4px">HKD 300</strong></span>
+          <span class="chip orange">All data private — on device only</span>
+        </div>
+        <div class="nav-sim-btns">
+          <button class="nav-sim-btn primary" onclick="goStep(2)">Next: TLSNotary →</button>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="sim-scene" id="scene-2">
+        <h3>Step 2 — TLSNotary MPC-TLS Notarization</h3>
+        <p style="font-size:0.86rem;color:var(--gray);margin-bottom:12px;">A notary server co-signs the TLS session between the cardholder's device and the Octopus portal API. The notary attests that specific response fields came from <strong>portal.octopus.com.hk</strong>, without ever seeing plaintext values.</p>
+        <div class="code-block">
+<span class="cmt">// TLSNotary attestation output (simplified)</span>
+{
+  <span class="key">"notary_pubkey"</span>: <span class="str">"0x4f8a...e391"</span>,
+  <span class="key">"server_name"</span>:  <span class="str">"portal.octopus.com.hk"</span>,
+  <span class="key">"session_id"</span>:   <span class="str">"sess_20260328_a1b2c3"</span>,
+  <span class="key">"attested_fields"</span>: {
+    <span class="key">"transit_count_KLN_march"</span>: <span class="num">6</span>,      <span class="cmt">// ← proven, NOT revealed to notary</span>
+    <span class="key">"mgmt_fee_total_march"</span>:   <span class="num">300</span>,    <span class="cmt">// ← proven, NOT revealed to notary</span>
+    <span class="key">"date_range"</span>:              <span class="str">"2026-03"</span>
+  },
+  <span class="key">"signature"</span>: <span class="str">"0x9c2e...8af1"</span>
+}
+        </div>
+        <div class="proof-box">
+          <div class="proof-label">Notary Signature (BN254)</div>
+          <div class="proof-hex">9c2e4a8f1b7d3c6e0f5a2b9d8e4c7f1a3b6d9e2c5f8a1b4d7e0c3f6a9b2e5c8f1a4d7b0e3f6c9a2b5e8d1c4f7a0b3e6d9c2f5a8b1e4d7c0f3a6b9e2c5f8a1b4</div>
+        </div>
+        <div class="nav-sim-btns">
+          <button class="nav-sim-btn" onclick="goStep(1)">← Back</button>
+          <button class="nav-sim-btn primary" onclick="goStep(3)">Next: POD Credential →</button>
+        </div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="sim-scene" id="scene-3">
+        <h3>Step 3 — POD Credential Construction</h3>
+        <p style="font-size:0.86rem;color:var(--gray);margin-bottom:12px;">The TLSNotary attestation is converted into a Zupass POD (Provable Object Data) structure. Each field is hashed into a Poseidon Merkle tree and the root is signed locally.</p>
+        <div class="code-block">
+<span class="cmt">// POD Credential — key-value structure with Poseidon Merkle commitment</span>
+<span class="kw">pod</span> OctopusTransitCredential {
+  <span class="key">owner_pubkey</span>:        <span class="str">"babyJubJub:0x7a3f...c291"</span>,
+  <span class="key">zone</span>:                <span class="str">"KOWLOON"</span>,
+  <span class="key">period</span>:              <span class="str">"2026-03"</span>,
+  <span class="key">transit_count</span>:       <span class="num">6</span>,          <span class="cmt">// PRIVATE witness</span>
+  <span class="key">mgmt_fee_total</span>:      <span class="num">300</span>,        <span class="cmt">// PRIVATE witness</span>
+  <span class="key">category</span>:            <span class="str">"TRANSIT"</span>,
+  <span class="key">provenance_hash</span>:     <span class="str">"0x5d8c...f024"</span>, <span class="cmt">// commitment to TLSNotary sig</span>
+
+  <span class="cmt">// Poseidon Merkle root (commits all entries)</span>
+  <span class="key">merkle_root</span>:         <span class="str">"0x3b7e...a918"</span>,
+  <span class="key">issuer_signature</span>:    <span class="str">"EdDSA:0x1f4a...d602"</span>
+}
+        </div>
+        <div class="progress-bar"><div class="progress-fill" id="pod-progress" style="width:100%"></div></div>
+        <div class="progress-label"><span>Merkle tree constructed</span><span style="color:var(--success)">✓ Signed by local issuer</span></div>
+        <div class="nav-sim-btns">
+          <button class="nav-sim-btn" onclick="goStep(2)">← Back</button>
+          <button class="nav-sim-btn primary" onclick="goStep(4)">Next: Identity Layer →</button>
+        </div>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="sim-scene" id="scene-4">
+        <h3>Step 4 — Semaphore V4 Identity Layer</h3>
+        <p style="font-size:0.86rem;color:var(--gray);margin-bottom:12px;">The cardholder proves ownership of the POD without revealing their identity. A deterministic nullifier prevents double-use while remaining unlinkable across different verifiers.</p>
+        <div class="code-block">
+<span class="cmt">// Semaphore V4 — EdDSA on BabyJubJub curve</span>
+<span class="kw">struct</span> SemaphoreIdentity {
+  secret_key:    <span class="str">"*** PRIVATE — never leaves device ***"</span>,
+  public_key:    <span class="str">"(Bx: 0x7a3f...c291, By: 0x2e8d...f047)"</span>,
+  merkle_proof:  <span class="str">"[0x4c1a..., 0x8f3b..., ...]"</span>, <span class="cmt">// group membership</span>
+}
+
+<span class="cmt">// Nullifier — deterministic per (identity, scope)</span>
+nullifier = <span class="kw">Poseidon</span>(secret_key, scope_hash)
+          = <span class="str">"0xd4e8...b192"</span>
+
+<span class="cmt">// Properties:</span>
+<span class="cmt">// • Same identity + same scope → same nullifier (prevents double-use)</span>
+<span class="cmt">// • Different scopes → different nullifiers (cross-verifier unlinkability)</span>
+<span class="cmt">// • Nullifier reveals NOTHING about secret_key</span>
+        </div>
+        <div class="row">
+          <span class="chip green">Ownership proven</span>
+          <span class="chip green">Nullifier registered</span>
+          <span class="chip orange">Identity hidden from verifier</span>
+        </div>
+        <div class="nav-sim-btns">
+          <button class="nav-sim-btn" onclick="goStep(3)">← Back</button>
+          <button class="nav-sim-btn primary" onclick="goStep(5)">Next: Generate Proof →</button>
+        </div>
+      </div>
+
+      <!-- Step 5 -->
+      <div class="sim-scene" id="scene-5">
+        <h3>Step 5 — GPC Circuit Configuration &amp; Mopro Proving</h3>
+        <p style="font-size:0.86rem;color:var(--gray);margin-bottom:12px;">The declarative GPC config specifies the claim predicate. Mopro compiles the Groth16 prover to native ARM and generates the proof entirely on the cardholder's smartphone.</p>
+        <div class="code-block">
+<span class="cmt">// GPC Claim: "transit_count in KOWLOON during 2026-03 ≥ 5"</span>
+<span class="kw">gpc_config</span> MobilityThresholdProof {
+  pod_entry       = <span class="key">transit_count</span>,
+  constraint      = <span class="str">GTE</span>(<span class="num">5</span>),           <span class="cmt">// private: actual value = 6 ✓</span>
+  revealed_fields = [<span class="str">"zone"</span>, <span class="str">"period"</span>], <span class="cmt">// everything else stays private</span>
+  nullifier_scope = <span class="str">"transport_dept_subsidy_2026Q1"</span>
+}
+        </div>
+        <div id="proving-status" style="margin:10px 0;">
+          <div class="progress-label"><span>Groth16 proof generation (Mopro · ARM native)</span><span id="proof-pct">0%</span></div>
+          <div class="progress-bar"><div class="progress-fill" id="proof-bar" style="width:0%"></div></div>
+          <div style="font-size:0.8rem;color:var(--gray);margin-top:6px;" id="proof-status-msg">Press "Generate Proof" to simulate on-device proving...</div>
+        </div>
+        <div class="proof-box" id="proof-output" style="display:none;">
+          <div class="proof-label">Groth16 Proof (~256 bytes)</div>
+          <div class="proof-hex" id="proof-hex-val"></div>
+        </div>
+        <div class="nav-sim-btns">
+          <button class="nav-sim-btn" onclick="goStep(4)">← Back</button>
+          <button class="nav-sim-btn primary" id="gen-proof-btn" onclick="simulateProofGen()">Generate Proof</button>
+          <button class="nav-sim-btn primary" id="next-eas-btn" onclick="goStep(6)" disabled>Next: EAS Attestation →</button>
+        </div>
+      </div>
+
+      <!-- Step 6 -->
+      <div class="sim-scene" id="scene-6">
+        <h3>Step 6 — EAS On-chain Attestation (Arbitrum One)</h3>
+        <p style="font-size:0.86rem;color:var(--gray);margin-bottom:12px;">The proof is submitted to the <code style="background:var(--purple-xlight);padding:1px 5px;border-radius:4px;">ZKOctopusResolver</code> contract on Arbitrum One. After on-chain verification, an EAS attestation is issued and stored permanently.</p>
+        <div class="code-block">
+<span class="cmt">// ZKOctopusResolver.sol — on-chain verification</span>
+<span class="kw">function</span> attest(AttestationRequest <span class="kw">calldata</span> req) <span class="kw">external returns</span> (bytes32) {
+  <span class="cmt">// 1. Decode attestation data</span>
+  (proof, pubInputs, nullifier) = abi.<span class="kw">decode</span>(req.data, ...);
+  <span class="cmt">// 2. Verify Groth16 proof via BN254 precompile</span>
+  <span class="kw">require</span>(verifier.verifyProof(proof, pubInputs), <span class="str">"invalid proof"</span>);
+  <span class="cmt">// 3. Check nullifier not already used</span>
+  <span class="kw">require</span>(!usedNullifiers[nullifier], <span class="str">"double-use"</span>);
+  usedNullifiers[nullifier] = <span class="kw">true</span>;
+  <span class="cmt">// 4. Issue EAS attestation</span>
+  <span class="kw">return</span> eas.attest(req);   <span class="cmt">// ~200,000 gas ≈ $0.02–0.04</span>
+}
+        </div>
+        <div class="card" style="background:var(--purple-xlight);border:1px solid var(--border);padding:14px;margin-top:10px;">
+          <div style="font-size:0.78rem;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">EAS Attestation Record</div>
+          <div style="font-size:0.82rem;font-family:monospace;color:var(--gray);line-height:1.8;">
+            Schema: MobilityCredential · 0x8f3a...c21b<br/>
+            Attester: ZKOctopusResolver · 0x4e7d...f059<br/>
+            Recipient: <em>(anonymous — nullifier only)</em><br/>
+            Public claim: zone=KOWLOON, period=2026-03, trips≥5 → <strong style="color:var(--success)">TRUE</strong><br/>
+            Gas used: 198,412 · Tx: 0xb2c9...a771
+          </div>
+        </div>
+        <div class="nav-sim-btns">
+          <button class="nav-sim-btn" onclick="goStep(5)">← Back</button>
+          <button class="nav-sim-btn primary" onclick="goStep(7)">Next: Verifier Check →</button>
+        </div>
+      </div>
+
+      <!-- Step 7 -->
+      <div class="sim-scene" id="scene-7">
+        <h3>Step 7 — Verifier Credential Presentation</h3>
+        <p style="font-size:0.86rem;color:var(--gray);margin-bottom:12px;">The cardholder presents the EAS attestation UID via Zupass to the Transport Department's subsidy verification portal. The verifier queries the on-chain attestation — no raw transaction data is shared at any point.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+          <div class="card" style="border:2px solid var(--success);">
+            <div style="font-weight:700;color:var(--success);margin-bottom:10px;">What the Verifier RECEIVES</div>
+            <div style="font-size:0.84rem;line-height:1.9;font-family:monospace;color:var(--gray);">
+              zone: "KOWLOON"<br/>
+              period: "2026-03"<br/>
+              claim: trips_gte_5 = <strong style="color:var(--success)">TRUE</strong><br/>
+              attestation_uid: 0x3f8c...<br/>
+              <span style="color:var(--success);font-style:italic;">← cryptographically verified</span>
+            </div>
+          </div>
+          <div class="card" style="border:2px solid var(--danger);">
+            <div style="font-weight:700;color:var(--danger);margin-bottom:10px;">What the Verifier NEVER SEES</div>
+            <div style="font-size:0.84rem;line-height:1.9;font-family:monospace;color:var(--danger);">
+              <s>exact trip count (6)</s><br/>
+              <s>specific stations visited</s><br/>
+              <s>departure/arrival times</s><br/>
+              <s>spending amounts</s><br/>
+              <s>cardholder identity</s>
+            </div>
+          </div>
+        </div>
+        <div class="verdict pass">Eligibility claim verified. Subsidy approved. Zero private data disclosed.</div>
+        <div class="nav-sim-btns">
+          <button class="nav-sim-btn" onclick="goStep(6)">← Back</button>
+          <button class="nav-sim-btn primary" onclick="goStep(1)">Restart Simulation</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════
+     SECTION 3 — Credential Generator
+     ══════════════════════════════════════════════════════════════ -->
+<section id="cred" class="section">
+  <div class="section-title">Credential Generator</div>
+  <div class="section-sub">Configure a ZK claim predicate and generate a mock ZK-Octopus credential. All "computation" happens in your browser — no backend required.</div>
+
+  <div class="cred-layout">
+    <!-- Input form -->
+    <div class="card">
+      <div class="form-group">
+        <label class="form-label">Claim Type</label>
+        <select class="form-select" id="claim-type" onchange="updateClaimForm()">
+          <option value="mobility">Mobility Threshold (transit trips ≥ N)</option>
+          <option value="payment">Aggregate Payment (cumulative fees ≥ HKD N)</option>
+          <option value="temporal">Temporal Regularity (commute pattern)</option>
+          <option value="composite">Composite Residency Credential</option>
+        </select>
+      </div>
+
+      <!-- Mobility params -->
+      <div id="params-mobility">
+        <div class="form-group">
+          <label class="form-label">Geographic Zone</label>
+          <select class="form-select" id="zone">
+            <option>KOWLOON</option>
+            <option>HONG_KONG_ISLAND</option>
+            <option>NEW_TERRITORIES</option>
+            <option>LANTAU</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Time Period</label>
+          <select class="form-select" id="period">
+            <option>2026-03</option>
+            <option>2026-02</option>
+            <option>2026-Q1</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Minimum Trip Count Threshold: <span id="trip-val" class="range-val">5</span></label>
+          <input type="range" class="form-range" id="min-trips" min="1" max="30" value="5" oninput="document.getElementById('trip-val').textContent=this.value">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Actual Trip Count (private witness): <span id="actual-trip-val" class="range-val">8</span></label>
+          <input type="range" class="form-range" id="actual-trips" min="0" max="40" value="8" oninput="document.getElementById('actual-trip-val').textContent=this.value">
+        </div>
+      </div>
+
+      <!-- Payment params -->
+      <div id="params-payment" style="display:none">
+        <div class="form-group">
+          <label class="form-label">Payment Category</label>
+          <select class="form-select" id="pay-cat">
+            <option>MANAGEMENT_FEE</option>
+            <option>TRANSIT_FARE</option>
+            <option>RETAIL_SPENDING</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Min Amount (HKD): <span id="min-amt-val" class="range-val">500</span></label>
+          <input type="range" class="form-range" id="min-amount" min="100" max="5000" step="100" value="500" oninput="document.getElementById('min-amt-val').textContent=this.value">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Actual Amount (HKD, private): <span id="actual-amt-val" class="range-val">1200</span></label>
+          <input type="range" class="form-range" id="actual-amount" min="0" max="5000" step="100" value="1200" oninput="document.getElementById('actual-amt-val').textContent=this.value">
+        </div>
+      </div>
+
+      <!-- Temporal params -->
+      <div id="params-temporal" style="display:none">
+        <div class="form-group">
+          <label class="form-label">Regularity Pattern</label>
+          <select class="form-select" id="pattern">
+            <option>WEEKDAY_MORNING_COMMUTE</option>
+            <option>REGULAR_BUILDING_ACCESS</option>
+            <option>WEEKLY_SHOPPING</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Min Occurrences: <span id="min-occ-val" class="range-val">12</span></label>
+          <input type="range" class="form-range" id="min-occ" min="1" max="30" value="12" oninput="document.getElementById('min-occ-val').textContent=this.value">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Actual Occurrences (private): <span id="actual-occ-val" class="range-val">18</span></label>
+          <input type="range" class="form-range" id="actual-occ" min="0" max="40" value="18" oninput="document.getElementById('actual-occ-val').textContent=this.value">
+        </div>
+      </div>
+
+      <!-- Composite params -->
+      <div id="params-composite" style="display:none">
+        <div class="form-group">
+          <label class="form-label">District</label>
+          <select class="form-select" id="district">
+            <option>KOWLOON_CITY</option>
+            <option>WONG_TAI_SIN</option>
+            <option>SHAM_SHUI_PO</option>
+            <option>EASTERN_DISTRICT</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Min Transit Trips: <span id="comp-trip-val" class="range-val">10</span></label>
+          <input type="range" class="form-range" id="comp-trips" min="1" max="30" value="10" oninput="document.getElementById('comp-trip-val').textContent=this.value">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Min Mgmt Fee (HKD): <span id="comp-fee-val" class="range-val">600</span></label>
+          <input type="range" class="form-range" id="comp-fee" min="100" max="3000" step="100" value="600" oninput="document.getElementById('comp-fee-val').textContent=this.value">
+        </div>
+      </div>
+
+      <button class="sim-btn" onclick="generateCredential()" style="width:100%">Generate ZK Credential</button>
+    </div>
+
+    <!-- Output -->
+    <div class="cred-output">
+      <div class="cred-placeholder" id="cred-placeholder">
+        <div class="icon">🔐</div>
+        <div>Configure parameters and click Generate</div>
+      </div>
+      <div id="cred-result" style="display:none"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════
+     SECTION 4 — Privacy Comparison
+     ══════════════════════════════════════════════════════════════ -->
+<section id="priv" class="section">
+  <div class="section-title">Privacy Comparison</div>
+  <div class="section-sub">How does ZK-Octopus compare to traditional data sharing for the same urban coordination task?</div>
+
+  <div class="privacy-layout">
+    <div class="two-class-banner">
+      <strong>The Two-Class Problem:</strong> Octopus cardholders whose daily spending exceeds <strong>HKD 3,000</strong> or annual spending exceeds <strong>HKD 25,000</strong> are required to register the card against a Hong Kong Identity Card number. For these users, any raw data transfer to a third party is not a probabilistic re-identification risk — it is a <strong>direct disclosure of a named individual's complete movement and payment record</strong>. ZK-Octopus addresses both user classes through the same mechanism: verifiers receive only the boolean predicate output, never the underlying data.
+    </div>
+
+    <!-- Traditional -->
+    <div class="privacy-panel trad">
+      <div class="privacy-panel-header">Traditional Data Sharing</div>
+      <div class="privacy-panel-body">
+        <p style="font-size:0.83rem;color:var(--gray);margin-bottom:12px;">Transport Department requests transaction records from Octopus Cards Limited to verify subsidy eligibility.</p>
+        <div class="exposed-row"><span class="icon">📍</span><span class="label">Station IDs (spatial)</span><span class="val">MTR_KT, MTR_MK, MTR_PE…</span></div>
+        <div class="exposed-row"><span class="icon">🕐</span><span class="label">Trip timestamps (temporal)</span><span class="val">08:12, 18:44, 08:09…</span></div>
+        <div class="exposed-row"><span class="icon">💰</span><span class="label">Exact fare amounts</span><span class="val">$9.50, $8.00, $7.50…</span></div>
+        <div class="exposed-row"><span class="icon">🏪</span><span class="label">Retail spend details</span><span class="val">7-Eleven $23.50 at 12:30</span></div>
+        <div class="exposed-row"><span class="icon">🏢</span><span class="label">Building access patterns</span><span class="val">Block A Lobby: 07:55 daily</span></div>
+        <div class="exposed-row"><span class="icon">🪪</span><span class="label">Linked HKID (if registered)</span><span class="val" style="color:var(--danger);font-weight:800">A123456(7) — DIRECT DISCLOSURE</span></div>
+
+        <div class="risk-meter">
+          <div class="risk-label"><span>Re-identification risk</span><span style="color:var(--danger)">CRITICAL</span></div>
+          <div class="progress-bar"><div class="risk-fill high"></div></div>
+        </div>
+        <div class="re-id-note danger">
+          De Montjoye et al. (2013): just <strong>4 spatio-temporal points</strong> suffice to uniquely re-identify 95% of individuals in mobility datasets. For identity-registered Octopus users, re-identification is already complete — the record carries the cardholder's name.
+        </div>
+      </div>
+    </div>
+
+    <!-- ZK -->
+    <div class="privacy-panel zk">
+      <div class="privacy-panel-header">ZK-Octopus Selective Disclosure</div>
+      <div class="privacy-panel-body">
+        <p style="font-size:0.83rem;color:var(--gray);margin-bottom:12px;">The cardholder generates a ZK proof on their device and submits only the attestation to the Transport Department verifier.</p>
+        <div class="exposed-row"><span class="icon">📍</span><span class="label">Station IDs (spatial)</span><span class="val hidden-val">[hidden inside circuit]</span></div>
+        <div class="exposed-row"><span class="icon">🕐</span><span class="label">Trip timestamps (temporal)</span><span class="val hidden-val">[hidden inside circuit]</span></div>
+        <div class="exposed-row"><span class="icon">💰</span><span class="label">Exact fare amounts</span><span class="val hidden-val">[hidden inside circuit]</span></div>
+        <div class="exposed-row"><span class="icon">🏪</span><span class="label">Retail spend details</span><span class="val hidden-val">[hidden inside circuit]</span></div>
+        <div class="exposed-row"><span class="icon">🏢</span><span class="label">Building access patterns</span><span class="val hidden-val">[hidden inside circuit]</span></div>
+        <div class="exposed-row"><span class="icon">🪪</span><span class="label">Cardholder identity</span><span class="val hidden-val">[unlinkable nullifier only]</span></div>
+
+        <div style="margin-top:10px;padding:10px 12px;background:#d1fae5;border-radius:7px;font-size:0.85rem;font-weight:700;color:#065f46;">
+          Verifier receives only: zone=KOWLOON, period=2026-03, trips≥5 → TRUE
+        </div>
+
+        <div class="risk-meter" style="margin-top:10px;">
+          <div class="risk-label"><span>Re-identification risk</span><span style="color:var(--success)">NEGLIGIBLE</span></div>
+          <div class="progress-bar"><div class="risk-fill low"></div></div>
+        </div>
+        <div class="re-id-note safe">
+          ZK guarantee: verifier learns exactly one bit of information — whether the claim predicate is satisfied. No individual transaction, no schedule, no identity. Holds equally for both pseudonymous and identity-registered cardholders.
+        </div>
+      </div>
+    </div>
+
+    <!-- Comparison table -->
+    <div style="grid-column: 1 / -1;">
+      <div class="card">
+        <div style="font-weight:700;color:var(--purple);font-size:1rem;margin-bottom:14px;">Use Case Coverage</div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Urban Coordination Use Case</th>
+              <th>Verifier</th>
+              <th>Claim Predicate</th>
+              <th>Traditional Privacy Cost</th>
+              <th>ZK Output</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Public Transport Fare Subsidy</td>
+              <td>Transport Dept.</td>
+              <td>transit_count(KLN, month) ≥ 20</td>
+              <td style="color:var(--danger)">Full mobility history exposed</td>
+              <td style="color:var(--success);font-weight:700">TRUE / FALSE</td>
+            </tr>
+            <tr>
+              <td>Public Housing Eligibility</td>
+              <td>Housing Authority</td>
+              <td>residency_indicator(district) = TRUE</td>
+              <td style="color:var(--danger)">Complete movement + identity</td>
+              <td style="color:var(--success);font-weight:700">TRUE / FALSE</td>
+            </tr>
+            <tr>
+              <td>Management Fee Compliance</td>
+              <td>Property Manager</td>
+              <td>mgmt_fee_paid(6mo) ≥ HKD 3,000</td>
+              <td style="color:var(--danger)">All payment records</td>
+              <td style="color:var(--success);font-weight:700">TRUE / FALSE</td>
+            </tr>
+            <tr>
+              <td>Infrastructure Demand Planning</td>
+              <td>Planning Dept.</td>
+              <td>count(regular_commuters, corridor)</td>
+              <td style="color:var(--danger)">Individual re-identifiable records</td>
+              <td style="color:var(--success);font-weight:700">Aggregate count only</td>
+            </tr>
+            <tr>
+              <td>Welfare Entitlement Check</td>
+              <td>Social Welfare Dept.</td>
+              <td>spending_below(threshold, period)</td>
+              <td style="color:var(--danger)">Full financial profile</td>
+              <td style="color:var(--success);font-weight:700">Range bucket</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+// ── Section navigation ───────────────────────────────────
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ── Architecture detail content ──────────────────────────
+const details = {
+  'octopus-card': {
+    title: 'Octopus Card — Data Source',
+    body: `Hong Kong's Octopus card (launched 1997) has over 37 million cards in circulation across a city of 7.5 million residents — many people carry multiple cards. Each tap encodes four data dimensions: <span class="badge">spatial</span> (which terminal) <span class="badge">temporal</span> (when) <span class="badge">monetary</span> (how much) <span class="badge">categorical</span> (transit / retail / building / government). The density of this data makes it one of the most comprehensive digital portraits of urban life anywhere in the world.`
+  },
+  'octopus-portal': {
+    title: 'Octopus Portal API — TLS-secured Endpoint',
+    body: `Cardholders can access their transaction history via the Octopus online portal. ZK-Octopus uses TLSNotary to co-sign the TLS session when the user's device fetches their records, producing a cryptographic attestation that the response genuinely came from Octopus servers — without the notary ever seeing plaintext transaction data.`
+  },
+  'two-class': {
+    title: 'Two-Class User Structure — Critical Privacy Distinction',
+    body: `Octopus cards operate pseudonymously by default. However, cardholders who cross the mandatory registration threshold — <span class="badge">daily spending > HKD 3,000</span> or <span class="badge">annual spending > HKD 25,000</span> — must bind their card to a Hong Kong Identity Card number. For these users, any raw data transfer is not a probabilistic risk but a direct named disclosure. ZK-Octopus addresses both classes uniformly: verifiers receive only the predicate boolean output regardless of registration status.`
+  },
+  'tlsnotary': {
+    title: 'TLSNotary — MPC-TLS Cryptographic Provenance',
+    body: `TLSNotary uses a three-phase MPC-TLS protocol. A notary server co-signs the TLS handshake between the user's device and the Octopus API. The notary produces a signed attestation that specific response fields originated from a specified domain, without ever seeing the plaintext. ZK-Octopus uses this to convert authenticated server responses into POD-formatted credentials. The notary learns <em>nothing</em> about the actual transaction values.`
+  },
+  'pod': {
+    title: 'POD Credential — Provable Object Data',
+    body: `POD (from the 0xPARC / Zupass ecosystem) is a key-value credential structure whose entries are hashed into a Poseidon Merkle tree. The Merkle root is signed by a trusted local issuer on the cardholder's device. Each Octopus-derived field becomes a named entry. A <span class="badge">provenance_hash</span> commits to the TLSNotary notarization, ensuring circuit inputs can be traced to an authenticated data source. The Poseidon hash function is ZK-circuit-friendly, making it efficient to prove Merkle membership inside a Groth16 circuit.`
+  },
+  'semaphore': {
+    title: 'Semaphore V4 — Unlinkable Identity and Nullifiers',
+    body: `Semaphore V4 provides the identity and anti-double-use layer. Each cardholder holds an EdDSA keypair on the Baby JubJub curve, committed to a Merkle group. Every proof includes a <span class="badge">Semaphore ownership proof</span> confirming the prover controls the credential. A deterministic nullifier (Poseidon of secret key and scope hash) prevents double-use at the same verifier while remaining completely unlinkable across different verifiers — the verifier cannot correlate a user's proofs across different contexts.`
+  },
+  'gpc': {
+    title: 'GPC — General Purpose Circuits (Zupass)',
+    body: `The GPC library (0xPARC Foundation) provides pre-compiled Circom + Groth16 circuits for proving POD entry properties. Each claim predicate is expressed as a declarative GPC configuration — specifying which POD entries to reveal, which to keep private, and which numerical constraints to enforce. GPC automatically selects the appropriate circuit at runtime, eliminating per-predicate circuit development. Custom Circom 2.0 sub-circuits handle <span class="badge">geographic zone membership</span> and <span class="badge">temporal window aggregation</span>.`
+  },
+  'mopro': {
+    title: 'Mopro SDK — Mobile Groth16 Proving',
+    body: `Mopro compiles Groth16 provers to native ARM code, packaged as iOS and Android bindings using rapidsnark. This enables ZK proof generation entirely on the cardholder's smartphone — no server round-trip needed. Target latency: <span class="badge">&lt; 1s for simple claims</span> and <span class="badge">&lt; 3s for composite claims</span>. Proof size is a constant ~256 bytes regardless of circuit complexity. Benchmarked on iPhone 16 and Samsung S23 Ultra.`
+  },
+  'eas': {
+    title: 'EAS — Ethereum Attestation Service (Arbitrum One)',
+    body: `EAS provides a permissionless, tokenless attestation layer on Ethereum and L2 networks. ZK-Octopus registers three EAS schemas: <span class="badge">MobilityCredential</span> <span class="badge">PaymentComplianceCredential</span> <span class="badge">CompositeResidencyCredential</span>. Attestations are stored on-chain (or as off-chain attestations anchored on-chain), queryable by any institutional verifier without requiring access to the original transaction data.`
+  },
+  'resolver': {
+    title: 'ZKOctopusResolver — On-chain Verification Contract',
+    body: `The custom Solidity resolver on Arbitrum One decodes EAS attestation data, verifies Groth16 proofs via BN254 precompiles (Ethereum's built-in elliptic curve operations), and checks the nullifier registry before issuing attestations. Estimated gas cost: <span class="badge">~200,000 gas ≈ $0.02–$0.04</span> at post-EIP-4844 Arbitrum prices. The contract enforces all privacy guarantees on-chain without trusting any off-chain party.`
+  },
+  'zupass': {
+    title: 'Zupass PCD — Credential Wallet',
+    body: `Zupass (0xPARC Foundation) is a Proof-Carrying Data credential wallet that stores PCDs — data attached to cryptographic proofs of correctness. Used by over 10,000 people at events like Zuzalu and Devconnect. ZK-Octopus credentials are stored in Zupass and presented to institutional verifiers via selective disclosure — the cardholder chooses which claim to present without revealing anything else.`
+  },
+  'verifier': {
+    title: 'Institutional Verifier — No Raw Data Required',
+    body: `Government departments (Transport, Housing, Planning, Social Welfare), transit operators (MTR Corporation, Bus Companies), and property managers can verify ZK-Octopus credentials by querying the ZKOctopusResolver contract or checking EAS attestations. The verifier learns <em>only</em> the public output of the specific claim predicate — a boolean or range bucket. No raw transaction data, no identity, no movement pattern is ever disclosed.`
+  }
+};
+
+function showDetail(key) {
+  const d = details[key];
+  if (!d) return;
+  const panel = document.getElementById('arch-detail');
+  panel.innerHTML = `<h3>${d.title}</h3><p>${d.body}</p>`;
+  document.querySelectorAll('.arch-node').forEach(n => n.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+}
+
+// ── Simulation step navigation ───────────────────────────
+let currentStep = 1;
+const totalSteps = 7;
+
+function goStep(n) {
+  // Hide all scenes
+  for (let i = 1; i <= totalSteps; i++) {
+    document.getElementById('scene-' + i).classList.remove('active');
+    const btn = document.getElementById('step-btn-' + i);
+    btn.classList.remove('active', 'done');
+    if (i < n) btn.classList.add('done');
+    else if (i === n) btn.classList.add('active');
+  }
+  document.getElementById('scene-' + n).classList.add('active');
+  currentStep = n;
+}
+
+// ── Proof generation simulation ──────────────────────────
+let proofGenDone = false;
+function simulateProofGen() {
+  const bar = document.getElementById('proof-bar');
+  const pct = document.getElementById('proof-pct');
+  const msg = document.getElementById('proof-status-msg');
+  const btn = document.getElementById('gen-proof-btn');
+  const nxtBtn = document.getElementById('next-eas-btn');
+  const out = document.getElementById('proof-output');
+  btn.disabled = true;
+
+  const messages = [
+    'Loading Groth16 proving key (ARM native)...',
+    'Computing witness from POD entries...',
+    'Evaluating GPC constraints...',
+    'Generating Groth16 proof (BN254)...',
+    'Proof verified locally. Size: 256 bytes.'
+  ];
+  let pctVal = 0;
+  let msgIdx = 0;
+  msg.textContent = messages[0];
+  const interval = setInterval(() => {
+    pctVal += Math.random() * 22 + 8;
+    if (pctVal > 100) pctVal = 100;
+    bar.style.width = pctVal + '%';
+    pct.textContent = Math.round(pctVal) + '%';
+    if (msgIdx < messages.length - 1 && pctVal > (msgIdx + 1) * 20) {
+      msgIdx++;
+      msg.textContent = messages[msgIdx];
+    }
+    if (pctVal >= 100) {
+      clearInterval(interval);
+      msg.textContent = 'Proof generation complete. 2.4s on iPhone 16 Pro.';
+      const hexChars = '0123456789abcdef';
+      let hex = '0x';
+      for (let i = 0; i < 256; i++) hex += hexChars[Math.floor(Math.random()*16)];
+      document.getElementById('proof-hex-val').textContent = hex;
+      out.style.display = 'block';
+      nxtBtn.disabled = false;
+      proofGenDone = true;
+    }
+  }, 120);
+}
+
+// ── Credential Generator ─────────────────────────────────
+function updateClaimForm() {
+  const type = document.getElementById('claim-type').value;
+  ['mobility','payment','temporal','composite'].forEach(t => {
+    document.getElementById('params-'+t).style.display = t === type ? 'block' : 'none';
+  });
+}
+
+function randHex(len) {
+  const c = '0123456789abcdef';
+  let s = '0x';
+  for (let i = 0; i < len; i++) s += c[Math.floor(Math.random()*16)];
+  return s;
+}
+
+function generateCredential() {
+  const type = document.getElementById('claim-type').value;
+  let claimTitle, publicFields, privateFields, result, schemaName;
+
+  if (type === 'mobility') {
+    const zone   = document.getElementById('zone').value;
+    const period = document.getElementById('period').value;
+    const thresh = parseInt(document.getElementById('min-trips').value);
+    const actual = parseInt(document.getElementById('actual-trips').value);
+    const pass   = actual >= thresh;
+    claimTitle  = 'MobilityCredential';
+    schemaName  = 'MobilityCredential · v1';
+    publicFields = { zone, period, claim: `transit_count ≥ ${thresh}` };
+    privateFields = { actual_count: actual, station_ids: '[redacted]', timestamps: '[redacted]' };
+    result = pass;
+  } else if (type === 'payment') {
+    const cat     = document.getElementById('pay-cat').value;
+    const minAmt  = parseInt(document.getElementById('min-amount').value);
+    const actual  = parseInt(document.getElementById('actual-amount').value);
+    const pass    = actual >= minAmt;
+    claimTitle   = 'PaymentComplianceCredential';
+    schemaName   = 'PaymentComplianceCredential · v1';
+    publicFields = { category: cat, claim: `cumulative ≥ HKD ${minAmt}` };
+    privateFields = { actual_total: `HKD ${actual}`, transactions: '[redacted]' };
+    result = pass;
+  } else if (type === 'temporal') {
+    const pat    = document.getElementById('pattern').value;
+    const minOcc = parseInt(document.getElementById('min-occ').value);
+    const actual = parseInt(document.getElementById('actual-occ').value);
+    const pass   = actual >= minOcc;
+    claimTitle  = 'TemporalRegularityCredential';
+    schemaName  = 'TemporalRegularityCredential · v1';
+    publicFields = { pattern: pat, claim: `occurrences ≥ ${minOcc}` };
+    privateFields = { actual_occurrences: actual, schedule: '[redacted]' };
+    result = pass;
+  } else {
+    const dist      = document.getElementById('district').value;
+    const tripMin   = parseInt(document.getElementById('comp-trips').value);
+    const feeMin    = parseInt(document.getElementById('comp-fee').value);
+    const actualT   = tripMin + Math.floor(Math.random()*5);
+    const actualF   = feeMin  + Math.floor(Math.random()*500);
+    claimTitle     = 'CompositeResidencyCredential';
+    schemaName     = 'CompositeResidencyCredential · v1';
+    publicFields   = { district: dist, claim: `transit≥${tripMin} AND mgmt_fee≥HKD${feeMin}` };
+    privateFields  = { transit_count: actualT, mgmt_fee_total: `HKD ${actualF}`, details: '[redacted]' };
+    result = true;
+  }
+
+  const nullifier = randHex(32);
+  const merkleRoot = randHex(32);
+  const proofHex = randHex(128);
+  const attestUID = randHex(32);
+
+  const html = `
+  <div class="cred-card">
+    <div class="cred-card-header">
+      <span class="cred-type">${claimTitle}</span>
+      <span class="cred-verified">Groth16 Verified</span>
+    </div>
+    <div class="cred-card-body">
+      <div class="cred-field">
+        <div class="cred-field-key">Schema</div>
+        <div class="cred-field-val">${schemaName}</div>
+      </div>
+      <div style="margin-bottom:8px;font-size:0.78rem;font-weight:700;color:var(--success);text-transform:uppercase;letter-spacing:.05em;">Public Outputs (disclosed to verifier)</div>
+      ${Object.entries(publicFields).map(([k,v]) => `
+      <div class="cred-field">
+        <div class="cred-field-key">${k}</div>
+        <div class="cred-field-val public">${v}</div>
+      </div>`).join('')}
+      <div style="margin:10px 0 8px;font-size:0.78rem;font-weight:700;color:var(--danger);text-transform:uppercase;letter-spacing:.05em;">Private Witness (hidden inside circuit)</div>
+      ${Object.entries(privateFields).map(([k,v]) => `
+      <div class="cred-field">
+        <div class="cred-field-key">${k}</div>
+        <div class="cred-field-val redacted">[PRIVATE — never disclosed]</div>
+      </div>`).join('')}
+      <div class="cred-field">
+        <div class="cred-field-key">Nullifier</div>
+        <div class="cred-field-val">${nullifier.slice(0,22)}…</div>
+      </div>
+      <div class="cred-field">
+        <div class="cred-field-key">Merkle Root</div>
+        <div class="cred-field-val">${merkleRoot.slice(0,22)}…</div>
+      </div>
+      <div class="cred-field">
+        <div class="cred-field-key">EAS Attestation UID</div>
+        <div class="cred-field-val">${attestUID.slice(0,22)}…</div>
+      </div>
+      <div class="cred-field">
+        <div class="cred-field-key">Groth16 Proof</div>
+        <div class="cred-field-val">${proofHex.slice(0,32)}…</div>
+      </div>
+    </div>
+  </div>
+  <div class="verdict ${result ? 'pass' : 'fail'}">
+    ${result ? '✓ Claim SATISFIED — credential valid for verifier' : '✗ Claim NOT SATISFIED — proof rejected'}
+  </div>`;
+
+  document.getElementById('cred-placeholder').style.display = 'none';
+  const res = document.getElementById('cred-result');
+  res.style.display = 'block';
+  res.innerHTML = html;
+}
+
+// Initialize
+goStep(1);
+</script>
+</body>
+</html>
