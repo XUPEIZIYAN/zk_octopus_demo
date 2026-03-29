@@ -38,7 +38,7 @@
     padding: 0 32px;
     display: flex;
     align-items: center;
-    gap: 32px;
+    justify-content: center;
     height: 60px;
     position: sticky;
     top: 0;
@@ -51,32 +51,17 @@
     color: var(--purple);
     letter-spacing: 0.02em;
     white-space: nowrap;
+    text-align: center;
   }
   .nav-brand span { color: var(--gray); font-weight: 400; }
-  .nav-tabs {
-    display: flex;
-    gap: 4px;
-    flex: 1;
-    overflow-x: auto;
-  }
-  .nav-tab {
-    padding: 6px 16px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.88rem;
-    font-weight: 500;
-    color: var(--gray);
-    border: none;
-    background: transparent;
-    transition: all .18s;
-    white-space: nowrap;
-  }
-  .nav-tab:hover { background: var(--purple-light); color: var(--purple); }
-  .nav-tab.active { background: var(--purple); color: #fff; }
 
   /* ── Section container ────────────────────────────── */
-  .section { display: none; padding: 40px 32px; max-width: 1100px; margin: 0 auto; }
-  .section.active { display: block; }
+  .section { display: block; padding: 40px 32px; max-width: 1100px; margin: 0 auto; }
+  .section + .section {
+    border-top: 2px solid var(--border);
+    padding-top: 56px;
+    margin-top: 0;
+  }
 
   /* ── Section header ───────────────────────────────── */
   .section-title {
@@ -650,8 +635,16 @@
     .arch-grid { grid-template-columns: repeat(3, 1fr); }
     .sim-layout, .cred-layout, .privacy-layout { grid-template-columns: 1fr; }
     .info-grid { grid-template-columns: 1fr 1fr; }
-    nav { padding: 0 16px; gap: 16px; }
+    nav { padding: 0 16px; flex-direction: column; height: auto; gap: 0; justify-content: flex-start; align-items: flex-start; padding: 12px 16px; }
+    .nav-brand { font-size: 1rem; flex: none; text-align: left; }
+    .nav-tabs { position: static; flex-wrap: wrap; gap: 4px; margin-top: 6px; padding-bottom: 8px; }
     .section { padding: 24px 16px; }
+  }
+  html { scroll-behavior: smooth; }
+  .section + .section::before {
+    content: '';
+    display: block;
+    height: 0;
   }
 </style>
 </head>
@@ -660,18 +653,12 @@
 <!-- ── Navigation ───────────────────────────────────────────────── -->
 <nav>
   <div class="nav-brand">ZK-Octopus <span>| Privacy-Preserving Urban Credentials on Ethereum</span></div>
-  <div class="nav-tabs">
-    <button class="nav-tab active" onclick="showSection('arch')">Architecture</button>
-    <button class="nav-tab" onclick="showSection('sim')">ZK Proof Simulation</button>
-    <button class="nav-tab" onclick="showSection('cred')">Credential Generator</button>
-    <button class="nav-tab" onclick="showSection('priv')">Privacy Comparison</button>
-  </div>
 </nav>
 
 <!-- ══════════════════════════════════════════════════════════════
      SECTION 1 — Architecture
      ══════════════════════════════════════════════════════════════ -->
-<section id="arch" class="section active">
+<section id="arch" class="section">
   <div class="section-title">System Architecture</div>
   <div class="section-sub">Click any component to see its role in the ZK-Octopus pipeline.</div>
 
@@ -1244,14 +1231,6 @@ nullifier = <span class="kw">Poseidon</span>(secret_key, scope_hash)
 </section>
 
 <script>
-// ── Section navigation ───────────────────────────────────
-function showSection(id) {
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-  event.target.classList.add('active');
-}
-
 // ── Architecture detail content ──────────────────────────
 const details = {
   'octopus-card': {
